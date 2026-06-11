@@ -1,0 +1,35 @@
+# OS Junk
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Environments & Dependencies
+.venv/
+env/
+venv/
+.python-version
+.direnv/
+.mise/
+
+# Local configuration
+*.kubeconfig
+kubeconfig.yaml
+vault-token.txt
+.secrets/
+
+# K8s & Infrastructure
+kind-config.yaml
+kind-cluster.yaml
+/clusters/**/tmp/
+/bootstrap/tmp/
+
+# Logs & Binaries
+*.log
+*.tmp
+bin/
+
+# Helm / Charts / ArgoCD artifacts / personal configuration
+charts/
+tmp/
+PRD.md
+STEPS.md

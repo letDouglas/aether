@@ -1,0 +1,6 @@
+# Aether platform tooling requirements
+kind 0.26.0
+kubectl 1.31.0
+helm 3.16.0
+clusterctl 1.9.0
+python 3.13.0
