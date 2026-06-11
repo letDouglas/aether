@@ -1,0 +1,46 @@
+global:
+  logging:
+    format: json
+    level: info
+
+configs:
+  params:
+    # Disable internal TLS to simplify port-forwarding and local ingress setups
+    server.insecure: "true"
+
+# Optimize resource consumption for local resource-constrained execution
+controller:
+  resources:
+    limits:
+      cpu: "1"
+      memory: 1Gi
+    requests:
+      cpu: 100m
+      memory: 256Mi
+
+repoServer:
+  resources:
+    limits:
+      cpu: "1"
+      memory: 512Mi
+    requests:
+      cpu: 100m
+      memory: 128Mi
+
+server:
+  resources:
+    limits:
+      cpu: "1"
+      memory: 512Mi
+    requests:
+      cpu: 100m
+      memory: 128Mi
+
+redis:
+  resources:
+    limits:
+      cpu: 500m
+      memory: 256Mi
+    requests:
+      cpu: 50m
+      memory: 64Mi

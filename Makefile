@@ -1,44 +1,60 @@
 # Aether Makefile
 # Platform Infrastructure Management
 
-# Configuration
 SHELL := /bin/bash
 .DEFAULT_GOAL := help
 
-.PHONY: help bootstrap clusters-up deploy-all mcp-up demo status down clean
+# Cluster configurations
+MGMT_CLUSTER_NAME := aether-mgmt
+
+# Tooling Versions (Pinned for 2026 stability)
+ARGOCD_VERSION := 7.7.0
+ARGOCD_NAMESPACE := argocd
+
+.PHONY: help bootstrap bootstrap-argocd status down clean
 
 help: ## Show this help message
 	@echo "Aether Platform CLI"
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-20s\033[0m %s\n", $$1, $$2}'
 
-bootstrap: ## 1. Init kind mgmt cluster + CAPI + ArgoCD + Vault
-	@echo "--> Bootstrapping Management Cluster..."
-	# Implementation logic will go here
+bootstrap: ## 1. Init kind mgmt cluster + CAPI + ArgoCD
+	@echo "--> Phase 1: Bootstrapping Management Cluster..."
+	@chmod +x bootstrap/init.sh
+	@./bootstrap/init.sh
+	@echo "--> Phase 2.1: Deploying ArgoCD..."
+	@$(MAKE) bootstrap-argocd
 
-clusters-up: ## 2. CAPI provisions ml + serving vclusters
-	@echo "--> Provisioning CAPI clusters..."
-	# Implementation logic will go here
+bootstrap-argocd: ## Deploy ArgoCD using Helm via local values
+	@echo "--> Adding ArgoProj Helm repository..."
+	@helm repo add argo https://argoproj.github.io/argo-helm --force-update
+	@echo "--> Installing ArgoCD Chart version $(ARGOCD_VERSION)..."
+	@helm upgrade --install argocd argo/argo-cd \
+		--version $(ARGOCD_VERSION) \
+		--namespace $(ARGOCD_NAMESPACE) \
+		--create-namespace \
+		-f clusters/management/argocd/values.yaml \
+		--wait
+	@echo "--> Waiting for ArgoCD API Server readiness..."
+	@kubectl wait --namespace $(ARGOCD_NAMESPACE) \
+		--for=condition=ready pod \
+		--selector=app.kubernetes.io/name=argocd-server \
+		--timeout=150s
+	@echo "--> ArgoCD Deployment Successful."
+	@echo "--> Initial Admin Password:"
+	@kubectl -n $(ARGOCD_NAMESPACE) get secret argocd-initial-admin-secret -o jsonpath="{.data.password}" | base64 -d; echo
 
-deploy-all: ## 3. Sync all apps via ArgoCD
-	@echo "--> Syncing GitOps state..."
-	# Implementation logic will go here
+status: ## Show health overview of infrastructure and applications
+	@echo "--> [Cluster Status]"
+	@kubectl cluster-info
+	@echo -e "\n--> [CAPI Components]"
+	@kubectl get pods -A | grep -E "capi-|capd-" || echo "No CAPI pods running."
+	@echo -e "\n--> [ArgoCD Status]"
+	@kubectl get pods -n $(ARGOCD_NAMESPACE) || echo "ArgoCD namespace not found."
 
-mcp-up: ## 4. Build and deploy MCP server
-	@echo "--> Deploying MCP Server..."
-	# Implementation logic will go here
+down: ## Teardown the local environment and delete kind cluster
+	@echo "--> Destroying aether-mgmt kind cluster..."
+	@kind delete cluster --name $(MGMT_CLUSTER_NAME) || echo "Cluster already deleted."
 
-demo: ## 5. Run end-to-end pipeline + inference
-	@echo "--> Running Demo Pipeline..."
-	# Implementation logic will go here
-
-status: ## 6. Show health overview of all clusters/apps
-	@echo "--> Checking system health..."
-	# Implementation logic will go here
-
-down: ## 7. Teardown everything
-	@echo "--> Destroying platform..."
-	# Implementation logic will go here
-
-clean: ## 8. Clean local build artifacts
+clean: ## Remove local temporary artifacts
 	@echo "--> Cleaning workspace..."
-	# Implementation logic will go here
+	@rm -rf build/
