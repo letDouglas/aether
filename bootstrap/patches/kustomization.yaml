@@ -1,0 +1,9 @@
+# Patches upstream CAPI vcluster provider manifests that reference deprecated images.
+# gcr.io/kubebuilder/ was shut down by Google — images no longer resolve.
+# Add a new patch file here for any future upstream image breakage.
+resources: []
+patches:
+  - path: kube-rbac-proxy.yaml
+    target:
+      kind: Deployment
+      name: cluster-api-provider-vcluster-controller-manager

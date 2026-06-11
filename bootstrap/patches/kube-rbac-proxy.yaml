@@ -1,0 +1,17 @@
+# kube-rbac-proxy was originally hosted on gcr.io/kubebuilder/kube-rbac-proxy
+# which Google deprecated and removed. The image now lives on quay.io/brancz/.
+# This patch overrides the broken image reference injected by clusterctl init.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cluster-api-provider-vcluster-controller-manager
+  namespace: cluster-api-provider-vcluster-system
+spec:
+  selector: {}
+  template:
+    spec:
+      containers:
+      - name: kube-rbac-proxy
+        image: quay.io/brancz/kube-rbac-proxy:v0.8.0
+        resources: {}
+        

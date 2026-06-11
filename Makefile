@@ -43,13 +43,12 @@ bootstrap-argocd: ## Deploy ArgoCD using Helm via local values
 	@echo "--> Initial Admin Password:"
 	@kubectl -n $(ARGOCD_NAMESPACE) get secret argocd-initial-admin-secret -o jsonpath="{.data.password}" | base64 -d; echo
 
-status: ## Show health overview of infrastructure and applications
-	@echo "--> [Cluster Status]"
+status: ## Show health overview
+	@echo "--> Checking management cluster health..."
 	@kubectl cluster-info
-	@echo -e "\n--> [CAPI Components]"
-	@kubectl get pods -A | grep -E "capi-|capd-" || echo "No CAPI pods running."
-	@echo -e "\n--> [ArgoCD Status]"
-	@kubectl get pods -n $(ARGOCD_NAMESPACE) || echo "ArgoCD namespace not found."
+	@echo "--> Checking CAPI components..."
+	# Changed grep pattern to look for vcluster provider pods
+	@kubectl get pods -A | grep -E "capi-|vcluster-system" || echo "No CAPI pods running yet."
 
 down: ## Teardown the local environment and delete kind cluster
 	@echo "--> Destroying aether-mgmt kind cluster..."
