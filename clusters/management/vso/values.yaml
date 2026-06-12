@@ -1,10 +1,12 @@
+# VSO Helm configuration.
+# This chart deploys the Vault Secrets Operator (VSO) controller.
+# The controller runs as a Kubernetes Operator (Deployment) that watches
+# the API server for Vault-related custom resources and synchronizes secrets.
+
 defaultVaultConnection:
   enabled: false
 
-# serviceAccount:
-#   create: true
-#   name: "vso-vault-secrets-operator-controller-manager"
-
+# Resource constraints for the VSO controller.
 controller:
   replicas: 1
   resources:

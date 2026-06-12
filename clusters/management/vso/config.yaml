@@ -1,3 +1,6 @@
+# 1. VaultConnection: Define where the Vault instance resides.
+# This object allows us to change the endpoint (e.g., to a production cluster) 
+# without touching the actual secret consumption logic.
 apiVersion: secrets.hashicorp.com/v1beta1
 kind: VaultConnection
 metadata:
@@ -6,6 +9,9 @@ metadata:
 spec:
   address: http://vault.vault.svc.cluster.local:8200
 ---
+# 2. VaultAuth: Configure the Kubernetes-native authentication.
+# This establishes the identity trust between the VSO ServiceAccount 
+# and Vault's Kubernetes Auth Method.
 apiVersion: secrets.hashicorp.com/v1beta1
 kind: VaultAuth
 metadata:
@@ -14,7 +20,10 @@ metadata:
 spec:
   method: kubernetes
   mount: kubernetes
+  # Link this auth config to the connection defined above
   vaultConnectionRef: main-vault
   kubernetes:
+    # This role must exist in Vault (configured via the bootstrap job)
     role: vso-role
+    # This matches the ServiceAccount created by the VSO Helm Chart
     serviceAccount: vso-vault-secrets-operator-controller-manager

@@ -1,3 +1,6 @@
+# Vault server configuration in standalone mode.
+# Uses file-based storage for development portability. 
+# UI is enabled to allow manual inspection during the lab lifecycle.
 server:
   standalone:
     enabled: true

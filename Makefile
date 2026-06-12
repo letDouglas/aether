@@ -7,7 +7,7 @@ SHELL := /bin/bash
 # Cluster configurations
 MGMT_CLUSTER_NAME := aether-mgmt
 
-# Tooling Versions (Pinned for 2026 stability)
+# Pinned versions to ensure environment consistency across development workstations
 ARGOCD_VERSION := 7.7.0
 ARGOCD_NAMESPACE := argocd
 VSO_NAMESPACE := vso
@@ -21,7 +21,7 @@ help: ## Show this help message
 	@echo "Aether Platform CLI"
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-20s\033[0m %s\n", $$1, $$2}'
 
-bootstrap: ## 1. Init kind mgmt cluster + CAPI + ArgoCD + VSO
+bootstrap: ## Execute full platform bootstrap: Kind + CAPI + ArgoCD + Vault + VSO
 	@echo "--> Phase 1: Bootstrapping Management Cluster..."
 	@chmod +x bootstrap/init.sh
 	@./bootstrap/init.sh

@@ -1,3 +1,7 @@
+# Job to automate Vault post-initialization tasks.
+# This job runs once after the operator unseals Vault to establish the platform's
+# security posture: enabling the KV-V2 engine, configuring the Kubernetes Auth
+# method, and creating the necessary policies/roles for secret access.
 apiVersion: batch/v1
 kind: Job
 metadata:
@@ -42,6 +46,7 @@ spec:
               EOF
 
               echo "Creating Aether Kubernetes Role..."
+              # Bind the ServiceAccount used by VSO to the aether-policy.
               vault write auth/kubernetes/role/vso-role \
                 bound_service_account_names=vso-vault-secrets-operator-controller-manager \
                 bound_service_account_namespaces="*" \

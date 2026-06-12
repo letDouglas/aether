@@ -1,3 +1,7 @@
+# VSO Smoke Test: VaultStaticSecret
+# This manifest acts as a verification check for the platform's security pipeline.
+# It attempts to retrieve a test secret from Vault using the VSO identity 
+# established in the management cluster.
 apiVersion: secrets.hashicorp.com/v1beta1
 kind: VaultStaticSecret
 metadata:
@@ -9,6 +13,8 @@ spec:
   path: aether/test-api
   refreshAfter: 30s
   type: kv-v2
+  # This creates a native Kubernetes Secret named 'k8s-vso-secret' 
+  # that applications can consume via environment variables or volume mounts.
   destination:
     name: k8s-vso-secret
     create: true

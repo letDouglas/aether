@@ -1,3 +1,6 @@
+# ArgoCD configuration for Aether Management Cluster.
+# Optimized for resource-constrained development environments (Kind).
+
 global:
   logging:
     format: json
@@ -5,10 +8,12 @@ global:
 
 configs:
   params:
-    # Disable internal TLS to simplify port-forwarding and local ingress setups
+    # Disable internal TLS to simplify local port-forwarding and Ingress tunneling.
+    # SSL/TLS termination should be handled at the Ingress Controller layer.
     server.insecure: "true"
 
-# Optimize resource consumption for local resource-constrained execution
+# Resource limits tuned for a single-node Kind cluster to ensure 
+# ArgoCD remains stable without starving the Control Plane.
 controller:
   resources:
     limits:
