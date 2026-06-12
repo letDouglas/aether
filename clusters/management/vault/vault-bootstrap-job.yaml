@@ -1,0 +1,73 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: vault-bootstrap
+  namespace: vault
+spec:
+  template:
+    spec:
+      containers:
+        - name: vault-bootstrap
+          image: hashicorp/vault:1.18.0
+          env:
+            - name: VAULT_ADDR
+              value: http://vault.vault.svc.cluster.local:8200
+            - name: VAULT_TOKEN
+              value: "aether-root-token"
+          command:
+            - /bin/sh
+            - -c
+            - |
+              echo "Waiting for Vault API to respond (sealed is OK)..."
+              until vault status 2>&1 | grep -qE "Initialized|sealed"; do
+                sleep 2
+              done
+
+              echo "Checking if already initialized..."
+              INITIALIZED=$(vault status -format=json 2>/dev/null | grep '"initialized"' | grep -c 'true' || echo "0")
+
+              if [ "$INITIALIZED" = "0" ]; then
+                echo "Initializing Vault with 1 key share..."
+                vault operator init -key-shares=1 -key-threshold=1 -format=json > /tmp/init.json
+                UNSEAL_KEY=$(grep -o '"[A-Za-z0-9+/=]*"' /tmp/init.json | sed -n '2p' | tr -d '"')
+                ROOT_TOKEN=$(grep 'root_token' /tmp/init.json | grep -o '"[^"]*"' | tail -1 | tr -d '"')
+                echo "UNSEAL_KEY=$UNSEAL_KEY" > /tmp/vault-keys.txt
+                echo "ROOT_TOKEN=$ROOT_TOKEN" >> /tmp/vault-keys.txt
+                echo "=== SAVE THESE KEYS ==="
+                cat /tmp/vault-keys.txt
+              else
+                echo "Already initialized, reading unseal key from env..."
+                UNSEAL_KEY=$VAULT_UNSEAL_KEY
+              fi
+
+              echo "=== VAULT INITIALIZED - RUN: make vault-unseal ==="
+              echo "Enabling KV-V2 Secrets Engine..."
+
+              echo "Enabling KV-V2 Secrets Engine..."
+              vault secrets enable -path=secret kv-v2 || true
+
+              echo "Enabling Kubernetes Authentication Method..."
+              vault auth enable kubernetes || true
+
+              echo "Configuring Kubernetes Authentication Config..."
+              # Configure Vault to validate local ServiceAccount tokens against the K8s API
+              vault write auth/kubernetes/config \
+                kubernetes_host="https://kubernetes.default.svc"
+
+              echo "Creating Aether Read-Only Policy..."
+              vault policy write aether-policy - <<EOF
+              path "secret/data/aether/*" {
+                capabilities = ["read"]
+              }
+              EOF
+
+              echo "Creating Aether Kubernetes Role..."
+              # Maps ServiceAccounts named 'vault-auth-sa' in any client namespace to this policy
+              vault write auth/kubernetes/role/aether-role \
+                bound_service_account_names=vault-auth-sa \
+                bound_service_account_namespaces="*" \
+                policies=aether-policy \
+                ttl=24h
+
+              echo "Vault Bootstrap Configuration Successful."
+      restartPolicy: OnFailure

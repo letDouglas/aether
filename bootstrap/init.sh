@@ -28,7 +28,14 @@ export CLUSTER_TOPOLOGY=true
 clusterctl init --infrastructure vcluster
 
 echo -e "${YELLOW}[INFO] Applying upstream image patches...${NC}"
-kubectl apply -k bootstrap/patches/
+
+kubectl patch deployment cluster-api-provider-vcluster-controller-manager \
+  -n cluster-api-provider-vcluster-system \
+  --type=json \
+  -p '[
+    {"op":"replace","path":"/spec/template/spec/containers/0/image","value":"docker.io/loftsh/cluster-api-provider-vcluster:0.2.2"},
+    {"op":"replace","path":"/spec/template/spec/containers/1/image","value":"quay.io/brancz/kube-rbac-proxy:v0.8.0"}
+  ]' || true
 
 echo -e "${GREEN}[SUCCESS] aether-mgmt ready${NC}"
 [ -d "$HOME/.kube/clusters" ] && kind get kubeconfig --name aether-mgmt > "$HOME/.kube/clusters/aether-mgmt.yaml"
