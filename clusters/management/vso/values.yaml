@@ -1,5 +1,9 @@
 defaultVaultConnection:
-  enabled: false # We define this manually for better control
+  enabled: false
+
+# serviceAccount:
+#   create: true
+#   name: "vso-vault-secrets-operator-controller-manager"
 
 controller:
   replicas: 1

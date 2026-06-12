@@ -1,0 +1,14 @@
+apiVersion: secrets.hashicorp.com/v1beta1
+kind: VaultStaticSecret
+metadata:
+  name: aether-test-vso
+  namespace: vso
+spec:
+  vaultAuthRef: vso-auth
+  mount: secret
+  path: aether/test-api
+  refreshAfter: 30s
+  type: kv-v2
+  destination:
+    name: k8s-vso-secret
+    create: true

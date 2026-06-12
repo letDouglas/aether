@@ -15,7 +15,7 @@ VSO_VERSION := 0.9.1
 VAULT_VERSION := 0.29.1
 VAULT_NAMESPACE := vault
 
-.PHONY: help bootstrap bootstrap-argocd bootstrap-vso bootsrap-vault status down clean
+.PHONY: help bootstrap bootstrap-argocd bootstrap-vso bootstrap-vault status down clean
 
 help: ## Show this help message
 	@echo "Aether Platform CLI"
@@ -51,7 +51,7 @@ bootstrap-argocd: ## Deploy ArgoCD using Helm via local values
 	@echo "--> Initial Admin Password:"
 	@kubectl -n $(ARGOCD_NAMESPACE) get secret argocd-initial-admin-secret -o jsonpath="{.data.password}" | base64 -d; echo
 
-bootstrap-vault: ## Deploy Vault via Helm + run bootstrap job
+bootstrap-vault: ## Deploy Vault via Helm
 	@helm repo add hashicorp https://helm.releases.hashicorp.com --force-update
 	@kubectl delete mutatingwebhookconfiguration vault-agent-injector-cfg --ignore-not-found
 	@helm upgrade --install vault hashicorp/vault \
@@ -62,16 +62,9 @@ bootstrap-vault: ## Deploy Vault via Helm + run bootstrap job
       --wait
 	@echo "--> Waiting for Vault pod readiness..."
 	@kubectl wait --namespace $(VAULT_NAMESPACE) \
-	      pod/vault-0 \
-	      --for=jsonpath='{.status.containerStatuses[0].started}'=true \
-	      --timeout=120s
-	@echo "--> Running Vault bootstrap job..."
-	@kubectl delete job vault-bootstrap -n $(VAULT_NAMESPACE) --ignore-not-found
-	@kubectl apply -f clusters/management/vault/vault-bootstrap-job.yaml
-	@kubectl wait --namespace $(VAULT_NAMESPACE) \
-	    --for=condition=complete job/vault-bootstrap \
-	    --timeout=120s
-	@echo "--> Vault Bootstrap Successful."
+        pod/vault-0 \
+        --for=jsonpath='{.status.containerStatuses[0].started}'=true \
+        --timeout=120s
 
 bootstrap-vso: ## Deploy Vault Secrets Operator
 	@helm repo add hashicorp https://helm.releases.hashicorp.com --force-update
@@ -83,6 +76,45 @@ bootstrap-vso: ## Deploy Vault Secrets Operator
 		--wait
 	@echo "--> Applying VSO Connection and Auth config..."
 	@kubectl apply -f clusters/management/vso/config.yaml
+	
+vault-unseal: ## Initialize and Unseal Vault, then configure it
+	@mkdir -p build
+	@# Check if Vault is actually initialized. If not, stale keys in build/ must be removed.
+	@IS_INIT=$$(kubectl exec -n $(VAULT_NAMESPACE) vault-0 -- vault status -format=json 2>/dev/null | jq -r '.initialized' || echo "false"); \
+	if [ "$$IS_INIT" = "false" ]; then \
+		echo "--> Vault is not initialized. Clearing stale keys from build/..."; \
+		rm -f build/vault-init.json; \
+	fi
+	@if [ -s build/vault-init.json ] && grep -q root_token build/vault-init.json 2>/dev/null; then \
+		echo "--> Found existing build/vault-init.json, reusing it."; \
+	else \
+		echo "--> Initializing Vault (1 key share)..."; \
+		kubectl exec -n $(VAULT_NAMESPACE) vault-0 -- vault operator init -key-shares=1 -key-threshold=1 -format=json > build/vault-init.json.tmp; \
+		if grep -q root_token build/vault-init.json.tmp; then \
+			mv build/vault-init.json.tmp build/vault-init.json; \
+		else \
+			rm -f build/vault-init.json.tmp; \
+			echo "ERROR: vault init failed (maybe already initialized with lost keys)."; \
+			exit 1; \
+		fi; \
+	fi; \
+	UNSEAL_KEY=$$(jq -r '.unseal_keys_b64[0]' build/vault-init.json); \
+	ROOT_TOKEN=$$(jq -r '.root_token' build/vault-init.json); \
+	if [ -z "$$UNSEAL_KEY" ] || [ "$$UNSEAL_KEY" = "null" ]; then \
+		echo "ERROR: Failed to extract unseal key using jq."; \
+		exit 1; \
+	fi; \
+	echo "--> Unsealing Vault..."; \
+	kubectl exec -n $(VAULT_NAMESPACE) vault-0 -- vault operator unseal $$UNSEAL_KEY; \
+	echo "--> Creating K8s Secret for Bootstrap Job Auth..."; \
+	kubectl create secret generic vault-root-token -n $(VAULT_NAMESPACE) --from-literal=token=$$ROOT_TOKEN --dry-run=client -o yaml | kubectl apply -f -; \
+	echo "--> Running Vault bootstrap job (Configuring K8s Auth)..."; \
+	kubectl delete job vault-bootstrap -n $(VAULT_NAMESPACE) --ignore-not-found 2>/dev/null || true; \
+	kubectl apply -f clusters/management/vault/vault-bootstrap-job.yaml; \
+	kubectl wait --namespace $(VAULT_NAMESPACE) \
+	    --for=condition=complete job/vault-bootstrap \
+	    --timeout=120s; \
+	echo "✅ Vault Unsealed and Configured. ROOT TOKEN: $$ROOT_TOKEN"
 
 status: ## Show health overview
 	@echo "--> Checking management cluster health..."

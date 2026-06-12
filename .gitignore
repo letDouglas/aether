@@ -33,3 +33,5 @@ charts/
 tmp/
 PRD.md
 STEPS.md
+build/
+tempfile
