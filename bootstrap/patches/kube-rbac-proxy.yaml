@@ -11,7 +11,9 @@ spec:
   template:
     spec:
       containers:
-      - name: kube-rbac-proxy
-        image: quay.io/brancz/kube-rbac-proxy:v0.8.0
-        resources: {}
-        
+        - name: manager
+          image: docker.io/loftsh/cluster-api-provider-vcluster:0.2.2
+          resources: {}
+        - name: kube-rbac-proxy
+          image: quay.io/brancz/kube-rbac-proxy:v0.8.0
+          resources: {}
