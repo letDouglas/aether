@@ -1,6 +1,5 @@
 # ArgoCD configuration for Aether Management Cluster.
 # Optimized for resource-constrained development environments (Kind).
-
 global:
   logging:
     format: json
