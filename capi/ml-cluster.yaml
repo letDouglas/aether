@@ -35,3 +35,9 @@ spec:
   controlPlaneServiceType: ClusterIP
   # Sets the Kubernetes version reported by the virtual cluster.
   kubernetesVersion: "1.31.0"
+  # EXPLICIT HELM DEPLOYMENT SPECIFICATION (Required for declarative CAPI v0.2.2)
+  helmRelease:
+    chart:
+      name: vcluster
+      repo: https://charts.loft.sh
+      version: "0.22.1"

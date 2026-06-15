@@ -35,3 +35,8 @@ spec:
   controlPlaneServiceType: ClusterIP
   # Defines the Kubernetes version that the virtual cluster will emulate.
   kubernetesVersion: "1.31.0"
+  helmRelease:
+    chart:
+      name: vcluster
+      repo: https://charts.loft.sh
+      version: "0.22.1"
