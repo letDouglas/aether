@@ -1,0 +1,18 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: capi-clusters
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/letDouglas/aether.git
+    targetRevision: dev
+    path: capi
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: default
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true

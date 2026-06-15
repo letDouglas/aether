@@ -1,0 +1,37 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: aether-serving
+---
+apiVersion: cluster.x-k8s.io/v1beta1
+kind: Cluster
+metadata:
+  name: aether-serving
+  namespace: aether-serving
+spec:
+  clusterNetwork:
+    pods:
+      cidrBlocks: ["10.97.0.0/16"]
+  # References the infrastructure provider responsible for creating the underlying cluster environment.
+  # In this case, the VCluster provider is used to provision a virtual Kubernetes cluster.
+  infrastructureRef:
+    apiVersion: infrastructure.cluster.x-k8s.io/v1alpha1
+    kind: VCluster
+    name: aether-serving
+  # References the control plane implementation for this cluster.
+  # The same VCluster instance also acts as the control plane for this cluster.
+  controlPlaneRef:
+    apiVersion: infrastructure.cluster.x-k8s.io/v1alpha1
+    kind: VCluster
+    name: aether-serving
+---
+apiVersion: infrastructure.cluster.x-k8s.io/v1alpha1
+kind: VCluster
+metadata:
+  name: aether-serving
+  namespace: aether-serving
+spec:
+  # Exposes the virtual cluster control plane only within the host Kubernetes cluster.
+  controlPlaneServiceType: ClusterIP
+  # Defines the Kubernetes version that the virtual cluster will emulate.
+  kubernetesVersion: "1.31.0"
