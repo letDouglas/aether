@@ -36,6 +36,7 @@ spec:
           jsonPointers:
             - /spec/controlPlaneEndpoint
             - /spec/kubernetesVersion
+            - /spec/controlPlaneServiceType 
       syncPolicy:
         automated:
           prune: true
