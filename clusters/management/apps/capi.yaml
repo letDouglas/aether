@@ -30,6 +30,12 @@ spec:
       destination:
         server: https://kubernetes.default.svc
         namespace: default
+      ignoreDifferences:
+        - group: infrastructure.cluster.x-k8s.io
+          kind: VCluster
+          jsonPointers:
+            - /spec/controlPlaneEndpoint
+            - /spec/kubernetesVersion
       syncPolicy:
         automated:
           prune: true
