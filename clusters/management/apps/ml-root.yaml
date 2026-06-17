@@ -14,7 +14,7 @@ spec:
     targetRevision: dev
     path: clusters/ml/apps
   destination:
-    server: https://kubernetes.default.svc
+    name: aether-ml
     namespace: argocd
   syncPolicy:
     automated:
