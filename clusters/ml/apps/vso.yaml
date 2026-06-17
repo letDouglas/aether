@@ -18,6 +18,11 @@ spec:
     - repoURL: https://github.com/letDouglas/aether.git
       targetRevision: dev
       ref: values
+    - repoURL: https://github.com/letDouglas/aether.git
+      targetRevision: dev
+      path: clusters/ml/vso
+      directory:
+        include: "config.yaml"
   destination:
     name: aether-ml
     namespace: vso
