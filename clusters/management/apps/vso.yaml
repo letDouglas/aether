@@ -38,6 +38,6 @@ spec:
       - ServerSideDiff=true
   ignoreDifferences:
     - group: apps
-      kind: StatefulSet
+      kind: Deployment
       jsonPointers:
         - /status/terminatingReplicas

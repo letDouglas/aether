@@ -36,3 +36,8 @@ spec:
       kind: StatefulSet
       jsonPointers:
         - /status/terminatingReplicas
+    - group: admissionregistration.k8s.io
+      kind: MutatingWebhookConfiguration
+      name: vault-agent-injector-cfg
+      jsonPointers:
+        - /webhooks/0/clientConfig/caBundle
