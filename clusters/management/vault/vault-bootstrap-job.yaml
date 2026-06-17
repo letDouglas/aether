@@ -52,6 +52,12 @@ spec:
                 bound_service_account_namespaces="*" \
                 policies=aether-policy \
                 ttl=24h
-
+                
+              echo "Creating ML Cluster Kubernetes Role..."
+              vault write auth/kubernetes/role/ml-cluster-role \
+                bound_service_account_names=vso-vault-secrets-operator-controller-manager \
+                bound_service_account_namespaces="vso" \
+                policies=aether-policy \
+                ttl=24h        
               echo "Vault Bootstrap Configuration Successful."
       restartPolicy: OnFailure

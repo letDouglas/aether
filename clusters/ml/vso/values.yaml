@@ -1,0 +1,12 @@
+defaultVaultConnection:
+  enabled: false
+
+controller:
+  replicas: 1
+  resources:
+    limits:
+      cpu: 250m
+      memory: 128Mi
+    requests:
+      cpu: 50m
+      memory: 64Mi

@@ -2,7 +2,6 @@
 # This chart deploys the Vault Secrets Operator (VSO) controller.
 # The controller runs as a Kubernetes Operator (Deployment) that watches
 # the API server for Vault-related custom resources and synchronizes secrets.
-
 defaultVaultConnection:
   enabled: false
 
