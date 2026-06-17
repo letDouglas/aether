@@ -77,7 +77,7 @@ spec:
                 
                 # 4. NATIVE DATA NORMALIZATION: Formulate the target TLS payload natively
                 # using bash string interpolation to avoid external dependencies like 'jq'.
-                JSON_CONFIG="{\"tlsClientConfig\":{\"insecure\":false,\"caData\":\"$CA_DATA\",\"certData\":\"$CERT_DATA\",\"keyData\":\"$KEY_DATA\"}}"
+                JSON_CONFIG="{\"tlsClientConfig\":{\"insecure\":true,\"certData\":\"$CERT_DATA\",\"keyData\":\"$KEY_DATA\"}}"
                 
                 # 5. DECLARATIVE REGISTRATION: Inject the ArgoCD-compatible secret.
                 # Creates the secret struct natively, appends the mandatory discovery label 
