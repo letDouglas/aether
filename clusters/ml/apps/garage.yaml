@@ -4,9 +4,7 @@ metadata:
   name: garage
   namespace: argocd
   annotations:
-    argocd.argoproj.io/sync-wave: "2"
-  finalizers:
-    - resources-finalizer.argocd.argoproj.io
+    argocd.argoproj.io/sync-wave: "1"
 spec:
   project: default
   sources:
@@ -35,4 +33,7 @@ spec:
     namespace: garage
   syncPolicy:
     automated:
-      prune:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
