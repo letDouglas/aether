@@ -45,6 +45,14 @@ spec:
               }
               EOF
 
+              # Policy allowing the bootstrap job to write the generated credentials
+              echo "Creating Aether Write-Only Policy for Garage..."
+              vault policy write aether-write-policy - <<-EOF
+              path "secret/data/aether/garage" {
+                capabilities = ["create", "update", "patch", "read"]
+              }
+              EOF
+
               echo "Creating Aether Kubernetes Role..."
               # Bind the ServiceAccount used by VSO to the aether-policy.
               vault write auth/kubernetes/role/vso-role \
@@ -59,5 +67,15 @@ spec:
                 bound_service_account_namespaces="vso" \
                 policies=aether-policy \
                 ttl=24h        
+
+              # Role allowing the Garage Job to authenticate and write to Vault
+              echo "Creating ML Garage Bootstrap Write Role..."
+              vault write auth/kubernetes/role/ml-garage-bootstrap-role \
+                bound_service_account_names=garage-bootstrap \
+                bound_service_account_namespaces="garage" \
+                policies=aether-write-policy \
+                ttl=1h
+
               echo "Vault Bootstrap Configuration Successful."
+              
       restartPolicy: OnFailure
