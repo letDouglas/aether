@@ -1,15 +1,19 @@
 garage:
-  replicationFactor: 1    
+  # Single-node, no replication for dev
+  replicationMode: "1"
 
 s3:
   api:
     region: "us-east-1"
 
+# Garage reads credentials from env vars injected by VSO
+# Keys: AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY
+# (bootstrapped manually via `garage key create` after first deploy)
 persistence:
-  meta:                 
-    size: 1Gi
-  data:                  
+  data:
     size: 10Gi
+  meta:
+    size: 1Gi
 
 resources:
   requests:
