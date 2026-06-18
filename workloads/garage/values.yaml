@@ -1,6 +1,6 @@
 garage:
   # Single-node, no replication for dev
-  replicationMode: "1"
+  replicationFactor: "1"
 
 s3:
   api:
