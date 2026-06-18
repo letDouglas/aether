@@ -1,0 +1,104 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: garage-bootstrap
+  namespace: garage
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: garage-bootstrap
+  namespace: garage
+rules:
+  - apiGroups: [""]
+    resources: ["pods", "pods/exec"]
+    verbs: ["get", "list", "create"]
+  - apiGroups: ["apps"]
+    resources: ["statefulsets"]
+    verbs: ["get"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: garage-bootstrap
+  namespace: garage
+subjects:
+  - kind: ServiceAccount
+    name: garage-bootstrap
+    namespace: garage
+roleRef:
+  kind: Role
+  name: garage-bootstrap
+  apiGroup: rbac.authorization.k8s.io
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: garage-bootstrap
+  namespace: garage
+  annotations:
+    argocd.argoproj.io/sync-wave: "5"
+spec:
+  template:
+    spec:
+      serviceAccountName: garage-bootstrap
+      containers:
+        - name: bootstrap
+          image: bitnami/kubectl:latest
+          command:
+            - /bin/sh
+            - -c
+            - |
+              # Install curl and jq for Vault API communication
+              apt-get update && apt-get install -y curl jq
+
+              echo "Waiting for Garage StatefulSet..."
+              kubectl rollout status sts/garage -n garage --timeout=120s
+
+              # Get local ServiceAccount token to login to Vault
+              K8S_TOKEN=$(cat /var/run/secrets/kubernetes.io/serviceaccount/token)
+
+              # Authenticate against Management Vault using the ml-garage-bootstrap-role
+              echo "Authenticating to Vault..."
+              LOGIN_RESPONSE=$(curl -s --request POST \
+                --data "{\"jwt\": \"$K8S_TOKEN\", \"role\": \"ml-garage-bootstrap-role\"}" \
+                http://vault.vault.svc.cluster.local:8200/v1/auth/kubernetes/login)
+              
+              VAULT_TOKEN=$(echo "$LOGIN_RESPONSE" | jq -r '.auth.client_token')
+
+              if [ -z "$VAULT_TOKEN" ] || [ "$VAULT_TOKEN" = "null" ]; then
+                echo "ERROR: Failed to authenticate to Vault."
+                echo "Response: $LOGIN_RESPONSE"
+                exit 1
+              fi
+
+              # Check if secret already exists in Vault (Idempotency)
+              SECRET_CHECK=$(curl -s --header "X-Vault-Token: $VAULT_TOKEN" \
+                http://vault.vault.svc.cluster.local:8200/v1/secret/data/aether/garage)
+              
+              if echo "$SECRET_CHECK" | jq -e '.data.data' >/dev/null 2>&1; then
+                echo "Garage credentials already exist in Vault. Skipping bootstrap."
+                exit 0
+              fi
+
+              echo "Creating S3 Bucket 'mlflow'..."
+              kubectl exec -n garage sts/garage -- garage bucket create mlflow || true
+
+              echo "Generating S3 credentials from Garage..."
+              OUTPUT=$(kubectl exec -n garage sts/garage -- garage key create mlflow-key)
+
+              KEY_ID=$(echo "$OUTPUT" | grep "Key ID:" | awk '{print $3}' | tr -d '\r')
+              SECRET_KEY=$(echo "$OUTPUT" | grep "Secret key:" | awk '{print $3}' | tr -d '\r')
+
+              echo "Linking key to bucket..."
+              kubectl exec -n garage sts/garage -- garage bucket allow mlflow --read --write --key mlflow-key
+
+              # Write the generated keys back to the Management Vault
+              echo "Writing generated keys to Vault..."
+              curl -s --header "X-Vault-Token: $VAULT_TOKEN" \
+                --request POST \
+                --data "{\"data\": {\"access-key-id\": \"$KEY_ID\", \"secret-access-key\": \"$SECRET_KEY\"}}" \
+                http://vault.vault.svc.cluster.local:8200/v1/secret/data/aether/garage
+
+              echo "Garage credentials successfully stored in Vault! VSO will sync now."
+      restartPolicy: OnFailure

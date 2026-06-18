@@ -1,0 +1,41 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: garage
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "2"
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  sources:
+    - repoURL: https://git.deuxfleurs.fr/api/packages/Deuxfleurs/helm
+      chart: garage
+      targetRevision: "0.9.4"
+      helm:
+        releaseName: garage
+        valueFiles:
+          - $values/workloads/garage/values.yaml
+    - repoURL: https://github.com/letDouglas/aether.git
+      targetRevision: dev
+      ref: values
+    - repoURL: https://github.com/letDouglas/aether.git
+      targetRevision: dev
+      path: workloads/garage
+      directory:
+        include: "bootstrap-job.yaml"
+    - repoURL: https://github.com/letDouglas/aether.git
+      targetRevision: dev
+      path: workloads/garage
+      directory:
+        include: "vso-secrets.yaml"
+  destination:
+    name: aether-ml
+    namespace: garage
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
