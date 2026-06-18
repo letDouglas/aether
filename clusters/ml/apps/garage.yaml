@@ -10,9 +10,9 @@ metadata:
 spec:
   project: default
   sources:
-    - repoURL: https://git.deuxfleurs.fr/api/packages/Deuxfleurs/helm
+    - repoURL: https://charts.derwitt.dev
       chart: garage
-      targetRevision: "0.9.4"
+      targetRevision: "2.3.2"
       helm:
         releaseName: garage
         valueFiles:
@@ -35,7 +35,4 @@ spec:
     namespace: garage
   syncPolicy:
     automated:
-      prune: true
-      selfHeal: true
-    syncOptions:
-      - CreateNamespace=true
+      prune:
