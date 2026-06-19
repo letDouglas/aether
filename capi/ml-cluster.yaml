@@ -42,7 +42,8 @@ spec:
       repo: https://charts.loft.sh
       version: "0.22.1"
     values: |
-      mapServices:
-        fromHost:
-          - from: vault/vault
-            to: vault/vault
+      networking:
+        replicateServices:
+          fromHost:
+            - from: vault/vault
+              to: vault/vault
