@@ -49,9 +49,6 @@ spec:
             - /bin/sh
             - -c
             - |
-              # Install curl and jq for Vault API communication
-              apt-get update && apt-get install -y curl jq
-
               echo "Waiting for Garage StatefulSet..."
               kubectl rollout status sts/garage -n garage --timeout=120s
 
