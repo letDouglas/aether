@@ -1,4 +1,3 @@
-# Estrae la CA cert del vcluster dal secret creato da CAPI
 data "kubernetes_secret" "vc_aether_ml" {
   provider = kubernetes.management
   metadata {
