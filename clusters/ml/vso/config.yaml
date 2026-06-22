@@ -14,7 +14,7 @@ metadata:
   namespace: vso
 spec:
   method: kubernetes
-  mount: kubernetes
+  mount: aether-ml
   vaultConnectionRef: management-vault
   kubernetes:
     # This role MUST be created in the Management Vault for the aether-ml cluster
