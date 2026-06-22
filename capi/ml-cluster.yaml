@@ -47,6 +47,6 @@ spec:
           fromHost:
             - from: vault/vault
               to: vault/vault
-      syncer:
+      controlPlane:
         extraArgs:
           - --tls-san=aether-ml.aether-ml.svc.cluster.local
