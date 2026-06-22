@@ -21,5 +21,6 @@ provider "kubernetes" {
 }
 
 provider "kubernetes" {
-  alias = "ml"
+  alias       = "ml"
+  config_path = "${path.module}/../../build/kubeconfigs/aether-ml.yaml"
 }

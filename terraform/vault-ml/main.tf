@@ -53,7 +53,7 @@ resource "vault_auth_backend" "kubernetes_ml" {
 
 resource "vault_kubernetes_auth_backend_config" "ml" {
   backend                = vault_auth_backend.kubernetes_ml.path
-  kubernetes_host        = "https://aether-ml.aether-ml.svc.cluster.local:443"
+  kubernetes_host        = "https://aether-ml.aether-ml:443"
   kubernetes_ca_cert     = data.kubernetes_secret.vc_aether_ml.data["certificate-authority"]
   token_reviewer_jwt     = kubernetes_secret.vault_reviewer_token.data["token"]
   disable_iss_validation = true

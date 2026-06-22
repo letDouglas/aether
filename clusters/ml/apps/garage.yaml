@@ -5,8 +5,10 @@ metadata:
   namespace: argocd
   annotations:
     argocd.argoproj.io/sync-wave: "1"
+
 spec:
   project: default
+
   sources:
     - repoURL: https://charts.derwitt.dev
       chart: garage
@@ -15,25 +17,31 @@ spec:
         releaseName: garage
         valueFiles:
           - $values/workloads/garage/values.yaml
+
     - repoURL: https://github.com/letDouglas/aether.git
       targetRevision: dev
       ref: values
+
     - repoURL: https://github.com/letDouglas/aether.git
       targetRevision: dev
       path: workloads/garage
       directory:
         include: "bootstrap-job.yaml"
+
     - repoURL: https://github.com/letDouglas/aether.git
       targetRevision: dev
       path: workloads/garage
       directory:
         include: "vso-secrets.yaml"
+
   destination:
     name: aether-ml
     namespace: garage
+
   syncPolicy:
     automated:
       prune: true
       selfHeal: true
+
     syncOptions:
       - CreateNamespace=true

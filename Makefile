@@ -84,14 +84,21 @@ vault-unseal: ## Initialize and unseal Vault, then configure it via OpenTofu
 clusters-up: ## Provision ml/serving vclusters via GitOps, then wire Vault trust for aether-ml
 	@mkdir -p build/kubeconfigs
 	@kind get kubeconfig --name aether-mgmt > build/kubeconfigs/management.yaml
+	@echo "--> Waiting for CAPI to generate aether-ml kubeconfig..."
+	@until kubectl get secret aether-ml-kubeconfig -n aether-ml >/dev/null 2>&1; do sleep 5; done
+	@echo "--> Wiring Vault trust for aether-ml..."
 	@ROOT_TOKEN=$$(jq -r '.root_token' build/vault-init.json); \
-	kubectl port-forward -n vault svc/vault 8200:8200 & \
-	PF_PID=$$!; \
-	sleep 3; \
-	VAULT_TOKEN=$$ROOT_TOKEN vcluster connect aether-ml -n aether-ml -- bash -c 'export KUBE_CONFIG_PATH=$$KUBECONFIG && tofu -chdir=terraform/vault-ml init -input=false && tofu -chdir=terraform/vault-ml apply -auto-approve'; \
-	TOFU_EXIT=$$?; \
-	kill $$PF_PID 2>/dev/null || true; \
-	exit $$TOFU_EXIT
+		kubectl port-forward -n vault svc/vault 8200:8200 >/dev/null 2>&1 & \
+		PF_PID=$$!; \
+		sleep 2; \
+		VAULT_TOKEN=$$ROOT_TOKEN vcluster connect aether-ml -n aether-ml -- bash -c ' \
+			kubectl config view --minify --flatten > $${PWD}/build/kubeconfigs/aether-ml.yaml && \
+			tofu -chdir=$${PWD}/terraform/vault-ml init -input=false && \
+			tofu -chdir=$${PWD}/terraform/vault-ml apply -auto-approve \
+		'; \
+		RESULT=$$?; \
+		kill $$PF_PID 2>/dev/null; \
+		exit $$RESULT
 	@echo "✅ Clusters ready, Vault trust wired for aether-ml."
 	
 clusters-kubeconfig: ## Extract child cluster kubeconfigs

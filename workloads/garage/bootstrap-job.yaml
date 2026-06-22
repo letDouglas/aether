@@ -79,16 +79,16 @@ spec:
               fi
 
               echo "Creating S3 Bucket 'mlflow'..."
-              kubectl exec -n garage sts/garage -- garage bucket create mlflow || true
+              kubectl exec -n garage garage-0 -- /garage bucket create mlflow || true
 
               echo "Generating S3 credentials from Garage..."
-              OUTPUT=$(kubectl exec -n garage sts/garage -- garage key create mlflow-key)
+              OUTPUT=$(kubectl exec -n garage garage-0 -- /garage key create mlflow-key)
 
               KEY_ID=$(echo "$OUTPUT" | grep "Key ID:" | awk '{print $3}' | tr -d '\r')
               SECRET_KEY=$(echo "$OUTPUT" | grep "Secret key:" | awk '{print $3}' | tr -d '\r')
 
               echo "Linking key to bucket..."
-              kubectl exec -n garage sts/garage -- garage bucket allow mlflow --read --write --key mlflow-key
+              kubectl exec -n garage garage-0 -- /garage bucket allow mlflow --read --write --key mlflow-key
 
               # Write the generated keys back to the Management Vault
               echo "Writing generated keys to Vault..."
