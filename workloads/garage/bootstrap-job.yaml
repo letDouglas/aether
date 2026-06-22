@@ -59,7 +59,7 @@ spec:
               echo "Authenticating to Vault..."
               LOGIN_RESPONSE=$(curl -s --request POST \
                 --data "{\"jwt\": \"$K8S_TOKEN\", \"role\": \"ml-garage-bootstrap-role\"}" \
-                http://vault.vault.svc.cluster.local:8200/v1/auth/kubernetes/login)
+                http://vault.vault.svc.cluster.local:8200/v1/auth/aether-ml/login)
 
               VAULT_TOKEN=$(echo "$LOGIN_RESPONSE" | jq -r '.auth.client_token')
 

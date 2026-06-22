@@ -47,9 +47,8 @@ bootstrap-argocd: ## Deploy ArgoCD using Helm with local values
 	@echo "--> Initial admin password:"
 	@kubectl -n $(ARGOCD_NAMESPACE) get secret argocd-initial-admin-secret -o jsonpath="{.data.password}" | base64 -d; echo
 
-vault-unseal: ## Initialize and unseal Vault, then configure it
+vault-unseal: ## Initialize and unseal Vault, then configure it via OpenTofu
 	@mkdir -p build
-	@# Verify whether Vault is already initialized; if not, clear any stale bootstrap artifacts.
 	@IS_INIT=$$(kubectl exec -n vault vault-0 -- vault status -format=json 2>/dev/null | jq -r '.initialized' || echo "false"); \
 	if [ "$$IS_INIT" = "false" ]; then \
 		echo "--> Vault is not initialized. Clearing stale keys from build/..."; \
@@ -64,38 +63,37 @@ vault-unseal: ## Initialize and unseal Vault, then configure it
 			mv build/vault-init.json.tmp build/vault-init.json; \
 		else \
 			rm -f build/vault-init.json.tmp; \
-			echo "ERROR: vault init failed (maybe already initialized with lost keys)."; \
+			echo "ERROR: vault init failed."; \
 			exit 1; \
 		fi; \
-	fi; \
-	UNSEAL_KEY=$$(jq -r '.unseal_keys_b64[0]' build/vault-init.json); \
+	fi
+	@UNSEAL_KEY=$$(jq -r '.unseal_keys_b64[0]' build/vault-init.json); \
 	ROOT_TOKEN=$$(jq -r '.root_token' build/vault-init.json); \
-	if [ -z "$$UNSEAL_KEY" ] || [ "$$UNSEAL_KEY" = "null" ]; then \
-		echo "ERROR: Failed to extract unseal key using jq."; \
-		exit 1; \
-	fi; \
 	echo "--> Unsealing Vault..."; \
 	kubectl exec -n vault vault-0 -- vault operator unseal $$UNSEAL_KEY; \
-	echo "--> Creating Kubernetes Secret for bootstrap job authentication..."; \
-	kubectl create secret generic vault-root-token -n vault --from-literal=token=$$ROOT_TOKEN --dry-run=client -o yaml | kubectl apply -f -; \
-	echo "--> Running Vault bootstrap job (configuring Kubernetes auth)..."; \
-	kubectl delete job vault-bootstrap -n vault --ignore-not-found 2>/dev/null || true; \
-	kubectl apply -f clusters/management/vault/vault-bootstrap-job.yaml; \
-	kubectl wait --namespace vault \
-		--for=condition=complete job/vault-bootstrap \
-		--timeout=120s; \
+	echo "--> Starting port-forward to Vault..."; \
+	kubectl port-forward -n vault svc/vault 8200:8200 & \
+	PF_PID=$$!; \
+	sleep 3; \
+	echo "--> Running OpenTofu vault-global..."; \
+	VAULT_TOKEN=$$ROOT_TOKEN tofu -chdir=terraform/vault-global init -input=false; \
+	VAULT_TOKEN=$$ROOT_TOKEN tofu -chdir=terraform/vault-global apply -auto-approve; \
+	kill $$PF_PID 2>/dev/null || true; \
 	echo "✅ Vault unsealed and configured. ROOT TOKEN: $$ROOT_TOKEN"
 
-clusters-up: ## Provision ml and serving vclusters via GitOps
-	@echo "--> Telling ArgoCD to sync CAPI clusters from Git..."
-	@kubectl apply -f clusters/management/argocd/capi-clusters.yaml
-	@echo "--> Waiting for ArgoCD to detect and sync (can take a minute)..."
-	@sleep 10
-	@echo "--> Waiting for CAPI Clusters to be provisioned (this may take 2 mins)..."
-	@kubectl wait --for=condition=Ready cluster/aether-ml -n aether-ml --timeout=300s || echo "Waiting for ArgoCD..."
-	@kubectl wait --for=condition=Ready cluster/aether-serving -n aether-serving --timeout=300s || echo "Waiting for ArgoCD..."
-	@echo "✅ CAPI Clusters are Ready and Managed by GitOps."
-
+clusters-up: ## Provision ml/serving vclusters via GitOps, then wire Vault trust for aether-ml
+	@mkdir -p build/kubeconfigs
+	@kind get kubeconfig --name aether-mgmt > build/kubeconfigs/management.yaml
+	@ROOT_TOKEN=$$(jq -r '.root_token' build/vault-init.json); \
+	kubectl port-forward -n vault svc/vault 8200:8200 & \
+	PF_PID=$$!; \
+	sleep 3; \
+	VAULT_TOKEN=$$ROOT_TOKEN vcluster connect aether-ml -n aether-ml -- bash -c 'export KUBE_CONFIG_PATH=$$KUBECONFIG && tofu -chdir=terraform/vault-ml init -input=false && tofu -chdir=terraform/vault-ml apply -auto-approve'; \
+	TOFU_EXIT=$$?; \
+	kill $$PF_PID 2>/dev/null || true; \
+	exit $$TOFU_EXIT
+	@echo "✅ Clusters ready, Vault trust wired for aether-ml."
+	
 clusters-kubeconfig: ## Extract child cluster kubeconfigs
 	@mkdir -p build/kubeconfigs
 	@vcluster connect aether-ml -n aether-ml --update-config=false --kubeconfig=build/kubeconfigs/ml.yaml
