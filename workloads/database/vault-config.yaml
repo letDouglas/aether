@@ -1,0 +1,20 @@
+apiVersion: secrets.hashicorp.com/v1beta1
+kind: VaultConnection
+metadata:
+  name: management-vault
+  namespace: database
+spec:
+  address: http://vault.vault.svc.cluster.local:8200
+---
+apiVersion: secrets.hashicorp.com/v1beta1
+kind: VaultAuth
+metadata:
+  name: vso-auth
+  namespace: database
+spec:
+  method: kubernetes
+  mount: kubernetes
+  vaultConnectionRef: management-vault
+  kubernetes:
+    role: ml-cluster-role
+    serviceAccount: vso-vault-secrets-operator-controller-manager
