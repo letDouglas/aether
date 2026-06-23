@@ -1,0 +1,16 @@
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+  name: mlflow-db
+  namespace: database
+spec:
+  instances: 2 # 1 primary, 1 replica for high availability
+  storage:
+    size: 5Gi
+  # CNPG will use the credentials VSO synced from Vault to setup the DB
+  bootstrap:
+    initdb:
+      database: mlflow
+      owner: mlflow
+      secret:
+        name: mlflow-db-creds
