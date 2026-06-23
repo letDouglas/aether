@@ -6,7 +6,6 @@ data "kubernetes_secret" "vc_aether_ml" {
   }
 }
 
-# ServiceAccount reviewer dentro il vcluster
 resource "kubernetes_service_account" "vault_reviewer" {
   provider = kubernetes.ml
   metadata {
@@ -32,7 +31,6 @@ resource "kubernetes_cluster_role_binding" "vault_reviewer" {
   }
 }
 
-# Token esplicito (necessario da Kubernetes 1.24+)
 resource "kubernetes_secret" "vault_reviewer_token" {
   provider = kubernetes.ml
   metadata {
@@ -45,7 +43,6 @@ resource "kubernetes_secret" "vault_reviewer_token" {
   type = "kubernetes.io/service-account-token"
 }
 
-# Auth backend dedicato al vcluster aether-ml
 resource "vault_auth_backend" "kubernetes_ml" {
   type = "kubernetes"
   path = "aether-ml"
@@ -75,4 +72,20 @@ resource "vault_kubernetes_auth_backend_role" "garage_bootstrap" {
   bound_service_account_namespaces = ["garage"]
   token_policies                   = ["aether-write-policy"]
   token_ttl                        = 3600
+}
+
+resource "random_password" "mlflow_db" {
+  length  = 24
+  special = false
+}
+
+resource "vault_kv_secret_v2" "mlflow_db_creds" {
+  mount               = "secret"
+  name                = "aether/mlflow-db"
+  cas                 = 1
+  delete_all_versions = true
+  data_json = jsonencode({
+    username = "mlflow"
+    password = random_password.mlflow_db.result
+  })
 }
