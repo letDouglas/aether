@@ -42,6 +42,9 @@ spec:
       repo: https://charts.loft.sh
       version: "0.22.1"
     values: |
+      sync:
+        secrets:
+          enabled: true
       networking:
         replicateServices:
           fromHost:

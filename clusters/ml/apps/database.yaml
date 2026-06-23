@@ -4,7 +4,7 @@ metadata:
   name: mlflow-database
   namespace: argocd
   annotations:
-    argocd.argoproj.io/sync-wave: "3" 
+    argocd.argoproj.io/sync-wave: "3"
   finalizers:
     - resources-finalizer.argocd.argoproj.io
 spec:
@@ -22,3 +22,15 @@ spec:
       selfHeal: true
     syncOptions:
       - CreateNamespace=true
+      - ServerSideApply=true
+  ignoreDifferences:
+    - group: apps
+      kind: StatefulSet
+      jsonPointers:
+        - /status/terminatingReplicas
+        - /status/readyReplicas
+    - group: postgresql.cnpg.io
+      kind: Cluster
+      jsonPointers:
+        - /status/instancesStatus
+        - /status/phase
