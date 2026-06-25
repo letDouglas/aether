@@ -1,14 +1,18 @@
 backendStore:
+  databaseMigration: true
+  databaseConnectionCheck: true
   postgres:
     enabled: true
-    host: mlflow-db-rw.database.svc.cluster.local
+    host: "mlflow-db-rw.database.svc.cluster.local"
     port: 5432
-    dbName: mlflow
-    user: mlflow
+    database: "mlflow"
+    user: "mlflow"
     password: "DUMMY_OVERRIDE"
-    passwordSecret:
-      name: mlflow-db-creds
-      key: password
+    
+    existingDatabaseSecret:
+      name: "mlflow-db-creds"
+      usernameKey: "username"
+      passwordKey: "password"
 
 artifactRoot:
   s3:
