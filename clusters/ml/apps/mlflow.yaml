@@ -1,0 +1,36 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: mlflow
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "5"
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  sources:
+    - repoURL: https://community-charts.github.io/helm-charts
+      chart: mlflow
+      targetRevision: 0.7.19
+      helm:
+        releaseName: mlflow
+        valueFiles:
+          - $values/workloads/mlflow/values.yaml
+    - repoURL: https://github.com/letDouglas/aether.git
+      targetRevision: dev
+      ref: values
+    - repoURL: https://github.com/letDouglas/aether.git
+      targetRevision: dev
+      path: workloads/mlflow
+      directory:
+        include: "{vault-config.yaml,vso-secrets.yaml}"
+  destination:
+    name: aether-ml
+    namespace: mlflow
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
