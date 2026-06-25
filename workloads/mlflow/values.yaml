@@ -1,12 +1,11 @@
 backendStore:
   postgres:
     enabled: true
-    # Connection string to the CNPG service in the database namespace
     host: mlflow-db-rw.database.svc.cluster.local
     port: 5432
     dbName: mlflow
     user: mlflow
-    # VSO will materialize the password in this key
+    password: "DUMMY_OVERRIDE"
     passwordSecret:
       name: mlflow-db-creds
       key: password
