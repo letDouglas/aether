@@ -1,3 +1,9 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: vso-client
+  namespace: database
+---
 apiVersion: secrets.hashicorp.com/v1beta1
 kind: VaultConnection
 metadata:
@@ -13,8 +19,8 @@ metadata:
   namespace: database
 spec:
   method: kubernetes
-  mount: kubernetes
+  mount: aether-ml
   vaultConnectionRef: management-vault
   kubernetes:
     role: ml-cluster-role
-    serviceAccount: vso-vault-secrets-operator-controller-manager
+    serviceAccount: vso-client

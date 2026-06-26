@@ -1,3 +1,9 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: vso-client
+  namespace: mlflow
+---
 apiVersion: secrets.hashicorp.com/v1beta1
 kind: VaultConnection
 metadata:
@@ -17,4 +23,4 @@ spec:
   vaultConnectionRef: management-vault
   kubernetes:
     role: ml-cluster-role
-    serviceAccount: vso-vault-secrets-operator-controller-manager
+    serviceAccount: vso-client

@@ -59,8 +59,8 @@ resource "vault_kubernetes_auth_backend_config" "ml" {
 resource "vault_kubernetes_auth_backend_role" "vso_ml" {
   backend                          = vault_auth_backend.kubernetes_ml.path
   role_name                        = "ml-cluster-role"
-  bound_service_account_names      = ["vso-vault-secrets-operator-controller-manager"]
-  bound_service_account_namespaces = ["vso"]
+  bound_service_account_names      = ["vso-vault-secrets-operator-controller-manager", "vso-client"]
+  bound_service_account_namespaces = ["vso", "mlflow", "database"]
   token_policies                   = ["aether-policy"]
   token_ttl                        = 86400
 }
