@@ -28,10 +28,25 @@ artifactRoot:
 extraEnvVars:
   MLFLOW_S3_ENDPOINT_URL: http://garage.garage.svc.cluster.local:3900
 
+extraArgs:
+  gunicornOpts: "--workers=2 --log-level=info"
+
 resources:
   requests:
     cpu: 100m
-    memory: 256Mi
+    memory: 512Mi
   limits:
     cpu: 500m
-    memory: 1Gi
+    memory: 1.5Gi
+
+livenessProbe:
+  initialDelaySeconds: 30
+  periodSeconds: 30
+  timeoutSeconds: 10
+  failureThreshold: 5
+
+readinessProbe:
+  initialDelaySeconds: 30
+  periodSeconds: 30
+  timeoutSeconds: 10
+  failureThreshold: 5
