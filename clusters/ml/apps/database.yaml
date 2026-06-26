@@ -22,7 +22,6 @@ spec:
       selfHeal: true
     syncOptions:
       - CreateNamespace=true
-      - ServerSideApply=true
   ignoreDifferences:
     - group: apps
       kind: StatefulSet
@@ -34,3 +33,4 @@ spec:
       jsonPointers:
         - /status/instancesStatus
         - /status/phase
+        - /status/terminatingReplicas
