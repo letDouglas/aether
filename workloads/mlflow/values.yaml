@@ -38,7 +38,7 @@ resources:
     memory: 512Mi
   limits:
     cpu: 500m
-    memory: 3Gi
+    memory: 1Gi
 
 livenessProbe:
   initialDelaySeconds: 30
