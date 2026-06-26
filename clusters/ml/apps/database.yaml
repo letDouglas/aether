@@ -34,3 +34,7 @@ spec:
         - /status/instancesStatus
         - /status/phase
         - /status/terminatingReplicas
+    - group: postgresql.cnpg.io
+      kind: Cluster
+      jsonPointers:
+        - /status/terminatingReplicas
