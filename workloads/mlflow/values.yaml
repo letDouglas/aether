@@ -38,4 +38,16 @@ resources:
     memory: 512Mi
   limits:
     cpu: 500m
-    memory: 1Gi
+    memory: 1.5Gi
+
+livenessProbe:
+  initialDelaySeconds: 30
+  periodSeconds: 30
+  timeoutSeconds: 10
+  failureThreshold: 5
+
+readinessProbe:
+  initialDelaySeconds: 30
+  periodSeconds: 30
+  timeoutSeconds: 10
+  failureThreshold: 5
