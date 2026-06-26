@@ -1,3 +1,6 @@
+image:
+  tag: "3.14.0"
+
 backendStore:
   databaseMigration: true
   databaseConnectionCheck: true
@@ -27,7 +30,9 @@ artifactRoot:
     awsSecretAccessKeySecretKey: secret-access-key
     region: us-east-1
 
-# Resources tuned for the vcluster
+extraEnvVars:
+  MLFLOW_S3_ENDPOINT_URL: http://garage.garage.svc.cluster.local:3900
+
 resources:
   requests:
     cpu: 100m
