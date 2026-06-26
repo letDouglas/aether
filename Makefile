@@ -28,27 +28,36 @@ bootstrap: ## Provision management cluster, deploy ArgoCD, and apply GitOps root
 	@echo "--> ArgoCD will now reconcile Vault, VSO, and CAPI clusters from Git."
 	@echo "--> Run 'make vault-unseal' once Vault pod is Running."
 
-bootstrap-argocd: ## Deploy ArgoCD using Helm with local values
+bootstrap-argocd: ## Deploy ArgoCD using Helm with active progress feedback
 	@echo "--> Adding Argo Helm repository..."
-	@helm repo add argo https://argoproj.github.io/argo-helm --force-update
-	@echo "--> Installing ArgoCD chart version $(ARGOCD_VERSION)..."
+	@helm repo add argo https://argoproj.github.io/argo-helm --force-update >/dev/null
+	@echo "--> Launching ArgoCD deployment in background (no-blocking)..."
 	@helm upgrade --install argocd argo/argo-cd \
 		--version $(ARGOCD_VERSION) \
 		--namespace $(ARGOCD_NAMESPACE) \
 		--create-namespace \
-		-f clusters/management/argocd/values.yaml \
-		--wait
-	@echo "--> Waiting for ArgoCD API server readiness..."
-	@kubectl wait --namespace $(ARGOCD_NAMESPACE) \
-		--for=condition=ready pod \
-		--selector=app.kubernetes.io/name=argocd-server \
-		--timeout=150s
-	@echo "--> ArgoCD deployment successful."
+		-f clusters/management/argocd/values.yaml
+	@echo "--> Monitoring ArgoCD Server spin-up progress..."
+	@# Active loop that prints progress every 3 seconds instead of a frozen terminal
+	@until [ "$$(kubectl get pods -n $(ARGOCD_NAMESPACE) -l app.kubernetes.io/name=argocd-server -o jsonpath='{.items[0].status.phase}' 2>/dev/null)" = "Running" ]; do \
+		STATUS=$$(kubectl get pods -n $(ARGOCD_NAMESPACE) -l app.kubernetes.io/name=argocd-server -o jsonpath='{.items[0].status.containerStatuses[0].state}' 2>/dev/null); \
+		echo "    [ArgoCD Server]: $$STATUS"; \
+		sleep 3; \
+	done
+	@echo "--> ArgoCD API Server is now fully Running."
 	@echo "--> Initial admin password:"
 	@kubectl -n $(ARGOCD_NAMESPACE) get secret argocd-initial-admin-secret -o jsonpath="{.data.password}" | base64 -d; echo
 
 vault-unseal: ## Initialize and unseal Vault, then configure it via OpenTofu
 	@mkdir -p build
+	@echo "--> Waiting for 'vault' namespace and pod initialization by ArgoCD..."
+	@until kubectl get ns vault >/dev/null 2>&1 && kubectl get pod vault-0 -n vault >/dev/null 2>&1; do \
+		echo "    [Vault Unseal]: Waiting for ArgoCD to create the namespace and pod..."; \
+		sleep 5; \
+	done
+	@echo "--> Waiting for 'vault-0' container to start..."
+	@kubectl wait --namespace vault pod/vault-0 --for=jsonpath='{.status.containerStatuses[0].started}'=true --timeout=150s
+	@# Verify whether Vault is already initialized; if not, clear any stale bootstrap artifacts.
 	@IS_INIT=$$(kubectl exec -n vault vault-0 -- vault status -format=json 2>/dev/null | jq -r '.initialized' || echo "false"); \
 	if [ "$$IS_INIT" = "false" ]; then \
 		echo "--> Vault is not initialized. Clearing stale keys from build/..."; \
