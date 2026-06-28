@@ -1,4 +1,4 @@
-apiVersion: v1
+ˆˆapiVersion: v1
 kind: Namespace
 metadata:
   name: aether-ml
@@ -43,11 +43,11 @@ spec:
       version: "0.22.1"
     values: |
       sync:
-        secrets:
-          enabled: true
+        toHost:
+          secrets:
+            enabled: true
       networking:
         replicateServices:
           fromHost:
             - from: vault/vault
               to: vault/vault
-

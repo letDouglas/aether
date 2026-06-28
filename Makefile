@@ -17,7 +17,7 @@ help: ## Show this help message
 	@echo "Aether Platform CLI"
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-20s\033[0m %s\n", $$1, $$2}'
 
-bootstrap: ## Provision management cluster, deploy ArgoCD, and apply GitOps root
+bootstrap: ## Provision management cluster, deploy ArgoCD, apply GitOps root, and unseal Vault
 	@echo "--> Phase 1: Bootstrapping management cluster..."
 	@chmod +x bootstrap/init.sh
 	@./bootstrap/init.sh
@@ -25,8 +25,26 @@ bootstrap: ## Provision management cluster, deploy ArgoCD, and apply GitOps root
 	@$(MAKE) bootstrap-argocd
 	@echo "--> Phase 3: Applying GitOps Root App..."
 	@kubectl apply -f clusters/management/root.yaml
-	@echo "--> ArgoCD will now reconcile Vault, VSO, and CAPI clusters from Git."
-	@echo "--> Run 'make vault-unseal' once Vault pod is Running."
+	@printf "\n"
+	@( COL=0; DIR=1; \
+	while true; do \
+		printf "\r%$${COL}s🦖  nom nom... waiting for Vault..." ""; \
+		COL=$$(( COL + DIR )); \
+		[ $$COL -ge 25 ] && DIR=-1; \
+		[ $$COL -le 0 ] && DIR=1; \
+		sleep 0.08; \
+	done ) & ANIM=$$!; \
+	until kubectl get pod vault-0 -n vault >/dev/null 2>&1 \
+		&& [ "$$(kubectl get pod vault-0 -n vault \
+			-o jsonpath='{.status.containerStatuses[0].started}' 2>/dev/null)" = "true" ]; do \
+		sleep 2; \
+	done; \
+	kill $$ANIM 2>/dev/null; \
+	printf "\r    🦕  RAWR! Vault is alive!                              \n"
+	@printf "\n"
+	@echo "--> Phase 4: Unsealing and configuring Vault..."
+	@$(MAKE) vault-unseal
+	@printf "\n🦕 Platform bootstrapped! Run 'make clusters-up' next.\n"
 
 bootstrap-argocd: ## Deploy ArgoCD using Helm with active progress feedback
 	@echo "--> Adding Argo Helm repository..."
