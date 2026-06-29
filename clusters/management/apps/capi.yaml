@@ -12,7 +12,7 @@ spec:
         repoURL: https://github.com/letDouglas/aether.git
         revision: dev
         directories:
-          - path: capi
+          - path: capi/*
   template:
     metadata:
       name: "capi-{{ .path.basenameNormalized }}"
@@ -29,7 +29,7 @@ spec:
         path: "{{ .path.path }}"
       destination:
         server: https://kubernetes.default.svc
-        namespace: default
+        namespace: "{{ .path.basenameNormalized }}"
       ignoreDifferences:
         - group: infrastructure.cluster.x-k8s.io
           kind: VCluster
@@ -44,4 +44,3 @@ spec:
         syncOptions:
           - CreateNamespace=true
           - RespectIgnoreDifferences=true
-          - ServerSideApply=true

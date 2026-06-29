@@ -1,10 +1,3 @@
-ˆˆapiVersion: v1
-kind: Namespace
-metadata:
-  name: aether-ml
-  annotations:
-      argocd.argoproj.io/sync-options: ServerSideApply=true
----
 apiVersion: cluster.x-k8s.io/v1beta1
 kind: Cluster
 metadata:
@@ -14,14 +7,10 @@ spec:
   clusterNetwork:
     pods:
       cidrBlocks: ["10.96.0.0/16"]
-  # Points to the infrastructure provider responsible for provisioning this cluster.
-  # In this setup, the VCluster provider creates the virtual cluster backing resources.
   infrastructureRef:
     apiVersion: infrastructure.cluster.x-k8s.io/v1alpha1
     kind: VCluster
     name: aether-ml
-  # Points to the control plane implementation for this cluster.
-  # Here, the same VCluster resource also provides the control plane.
   controlPlaneRef:
     apiVersion: infrastructure.cluster.x-k8s.io/v1alpha1
     kind: VCluster
@@ -33,11 +22,8 @@ metadata:
   name: aether-ml
   namespace: aether-ml
 spec:
-  # Exposes the virtual cluster control plane only inside the host cluster.
   controlPlaneServiceType: ClusterIP
-  # Sets the Kubernetes version reported by the virtual cluster.
   kubernetesVersion: "1.31.0"
-  # EXPLICIT HELM DEPLOYMENT SPECIFICATION (Required for declarative CAPI v0.2.2)
   helmRelease:
     chart:
       name: vcluster
