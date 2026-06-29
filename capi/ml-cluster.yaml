@@ -2,6 +2,8 @@
 kind: Namespace
 metadata:
   name: aether-ml
+  annotations:
+      argocd.argoproj.io/sync-options: ServerSideApply=true
 ---
 apiVersion: cluster.x-k8s.io/v1beta1
 kind: Cluster
