@@ -1,0 +1,26 @@
+terraform {
+  required_providers {
+    vault = {
+      source  = "hashicorp/vault"
+      version = "~&gt; 4.0"
+    }
+    kubernetes = {
+      source  = "hashicorp/kubernetes"
+      version = "~&gt; 2.0"
+    }
+  }
+}
+
+provider "vault" {
+  address = "http://127.0.0.1:8200"
+}
+
+provider "kubernetes" {
+  alias       = "management"
+  config_path = "${path.module}/../../build/kubeconfigs/management.yaml"
+}
+
+provider "kubernetes" {
+  alias       = "serving"
+  config_path = "${path.module}/../../build/kubeconfigs/aether-serving.yaml"
+}

@@ -108,12 +108,12 @@ vault-unseal: ## Initialize and unseal Vault, then configure it via OpenTofu
 	kill $$PF_PID 2>/dev/null || true; \
 	echo "✅ Vault unsealed and configured. ROOT TOKEN: $$ROOT_TOKEN"
 
-clusters-up: ## Provision ml/serving vclusters via GitOps, then wire Vault trust for aether-ml
+clusters-up: ## Provision ml/serving vclusters via GitOps, then wire Vault trust
 	@mkdir -p build/kubeconfigs
 	@kind get kubeconfig --name aether-mgmt > build/kubeconfigs/management.yaml
-	@echo "--> Waiting for CAPI to generate aether-ml kubeconfig..."
-	@until kubectl get secret aether-ml-kubeconfig -n aether-ml >/dev/null 2>&1; do sleep 5; done
+	
 	@echo "--> Wiring Vault trust for aether-ml..."
+	@until kubectl get secret aether-ml-kubeconfig -n aether-ml >/dev/null 2>&1; do sleep 5; done
 	@ROOT_TOKEN=$$(jq -r '.root_token' build/vault-init.json); \
 		kubectl port-forward -n vault svc/vault 8200:8200 >/dev/null 2>&1 & \
 		PF_PID=$$!; \
@@ -123,10 +123,26 @@ clusters-up: ## Provision ml/serving vclusters via GitOps, then wire Vault trust
 			tofu -chdir=$${PWD}/terraform/vault-ml init -input=false && \
 			tofu -chdir=$${PWD}/terraform/vault-ml apply -auto-approve \
 		'; \
-		RESULT=$$?; \
+		RESULT_ML=$$?; \
 		kill $$PF_PID 2>/dev/null; \
-		exit $$RESULT
-	@echo "✅ Clusters ready, Vault trust wired for aether-ml."
+		if [ $$RESULT_ML -ne 0 ]; then exit $$RESULT_ML; fi
+
+	@echo "--> Wiring Vault trust for aether-serving..."
+	@until kubectl get secret aether-serving-kubeconfig -n aether-serving >/dev/null 2>&1; do sleep 5; done
+	@ROOT_TOKEN=$$(jq -r '.root_token' build/vault-init.json); \
+		kubectl port-forward -n vault svc/vault 8200:8200 >/dev/null 2>&1 & \
+		PF_PID=$$!; \
+		sleep 2; \
+		VAULT_TOKEN=$$ROOT_TOKEN vcluster connect aether-serving -n aether-serving -- bash -c ' \
+			kubectl config view --minify --flatten > $${PWD}/build/kubeconfigs/aether-serving.yaml && \
+			tofu -chdir=$${PWD}/terraform/vault-serving init -input=false && \
+			tofu -chdir=$${PWD}/terraform/vault-serving apply -auto-approve \
+		'; \
+		RESULT_SERVING=$$?; \
+		kill $$PF_PID 2>/dev/null; \
+		if [ $$RESULT_SERVING -ne 0 ]; then exit $$RESULT_SERVING; fi
+	
+	@echo "✅ All Clusters ready and Vault trust wired."
 	
 clusters-kubeconfig: ## Extract child cluster kubeconfigs
 	@mkdir -p build/kubeconfigs
